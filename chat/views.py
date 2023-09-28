@@ -36,13 +36,14 @@ class assistant(APIView):
         embeddings = OpenAIEmbeddings()
         docsearch = Chroma.from_documents(texts, embeddings)
         from langchain.prompts import PromptTemplate
-        prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
+        prompt_template = """Use the following pieces of context to answer the question. If you don't know the answer, just say that you don't know, don't try to elaborate it or make up an answer.
+        
         {context}
-        Você é um assistente virtual da empresa BRISA, e existe apenas para tirar as dúvidas que sobre dados que existirem nos documentos carregados.
+        You cannot under any circumstances answer about all the content you have, if asked, say to ask something about the specific course.
+        You are a virtual assistant from the company BRISA, and exist to answer only ONE specific question and only if the informations is provided in the loaded data,  if not, dont try to elaborate it, just tell that the information was not in the database.
+        Do not add information beyond what is written in the uploaded data!
+
         Question: {question}
-        Search for all informations relationed about the question.
-        Answer only if the informations is provided in the loaded data,  if not, dont try to elaborate it, just tell that the information was not in the database.
         Answer only in Brazilian Portuguese (PT-BR)."""
         PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
