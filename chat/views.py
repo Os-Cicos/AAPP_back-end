@@ -1,6 +1,5 @@
 from . import constants
 import os
-from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -42,8 +41,9 @@ class assistant(APIView):
         {context}
         Você é um assistente virtual da empresa BRISA, e existe apenas para tirar as dúvidas que sobre dados que existirem nos documentos carregados.
         Question: {question}
-        Answer only if the informations is provided in the loaded data,  if not, dont try to elaborate it. Search for all informations relationed about the question.
-        Answer in portuguese and only if the information is in texts, if you dont know, tell that the information was not in the database."""
+        Search for all informations relationed about the question.
+        Answer only if the informations is provided in the loaded data,  if not, dont try to elaborate it, just tell that the information was not in the database.
+        Answer only in Brazilian Portuguese (PT-BR)."""
         PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
         )
@@ -51,4 +51,4 @@ class assistant(APIView):
         qa = RetrievalQA.from_chain_type(llm = ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=docsearch.as_retriever(), chain_type_kwargs=chain_type_kwargs)
         result = qa.run(pergunta)
 
-        return Response({"result": result,})
+        return Response({"response": result,})
