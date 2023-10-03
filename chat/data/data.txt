@@ -1,4 +1,27 @@
-Matheus tem 22 anos
-Python é uma linguagem de programação de alto nível, conhecida por sua simplicidade e versatilidade em diversos campos.
-matheus gosta de jogar homem aranha e resident evil
-Structured query language (SQL) is a programming language for storing and processing information in a relational database. A relational database stores information in tabular form, with rows and columns representing different data attributes and the various relationships between the data values.
+Python:
+
+Python é uma linguagem de programação de alto nível e de código aberto.
+É conhecida por sua sintaxe limpa e legibilidade, o que a torna uma ótima escolha para iniciantes.
+Python é versátil e usado em diversos campos, como desenvolvimento web, ciência de dados, automação, aprendizado de máquina e mais.
+Possui uma grande comunidade de desenvolvedores e uma vasta biblioteca padrão.
+
+JavaScript:
+
+JavaScript é uma linguagem de programação de alto nível amplamente usada para desenvolvimento web.
+É uma linguagem de script que é executada no navegador do cliente, permitindo interatividade em páginas da web.
+É essencial para o desenvolvimento front-end, permitindo a criação de aplicativos web dinâmicos.
+Também é usado no back-end (Node.js) e em outros contextos, como desenvolvimento de jogos.
+
+SQL (Structured Query Language):
+
+SQL é uma linguagem de consulta usada para gerenciar e manipular bancos de dados relacionais.
+Permite a criação, recuperação, atualização e exclusão de dados em bancos de dados.
+É usado em sistemas de gerenciamento de bancos de dados como MySQL, PostgreSQL, SQL Server e Oracle.
+SQL é essencial para o armazenamento e recuperação eficiente de dados em muitos aplicativos e sites.
+
+React:
+
+React é uma biblioteca JavaScript desenvolvida pelo Facebook para criação de interfaces de usuário (UI) interativas e reativas.
+Ele segue o conceito de componentização, dividindo a interface do usuário em componentes reutilizáveis.
+React é amplamente utilizado para desenvolvimento front-end e é a base de muitos aplicativos da web modernos.
+Ele oferece uma atualização eficiente da interface do usuário por meio da técnica chamada "Virtual DOM".
