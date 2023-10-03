@@ -1,6 +1,7 @@
 from . import constants
 import os
 from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from langchain.document_loaders import TextLoader
@@ -30,20 +31,23 @@ class assistant(APIView):
 
         loader = TextLoader('chat/data/data.txt')
         documents = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         texts = text_splitter.split_documents(documents)
 
         embeddings = OpenAIEmbeddings()
         docsearch = Chroma.from_documents(texts, embeddings)
         from langchain.prompts import PromptTemplate
-        prompt_template = """Use the following pieces of context to answer the question. If you don't know the answer, just say that you don't know, don't try to elaborate it or make up an answer.
+        prompt_template = """ Use the following pieces of context to answer the question. If you don't know the answer, just say that you don't know, don't try to elaborate it or hallucinate.
         
         {context}
-        You cannot under any circumstances answer about all the content you have, if asked, say to ask something about the specific course.
-        You are a virtual assistant from the company BRISA, and exist to answer only ONE specific question and only if the informations is provided in the loaded data,  if not, dont try to elaborate it, just tell that the information was not in the database.
-        Do not add information beyond what is written in the uploaded data!
+        Answer questions only if the information about the question is inside the documents,  if you don't find, dont try to elaborate it,  just tell that the information was not in the database. 
+        Don't answer anything other than what you have in the database or in documents. Just copy and paste what is in the loaded data!
+        You are a virtual assistant from the company BRISA.
+        Após responder, sempre pergunte se o usuário tem mais alguma dúvida.
+        Seja direto e responda apenas apartir dos dados carregados, você não pode responder nada além do que há nos dados.
 
         Question: {question}
+        Your answer has to be an output less than 150 characters lenght.
         Answer only in Brazilian Portuguese (PT-BR)."""
         PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
@@ -53,3 +57,4 @@ class assistant(APIView):
         result = qa.run(pergunta)
 
         return Response({"response": result,})
+        
