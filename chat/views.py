@@ -1,5 +1,5 @@
 from . import constants
-import os
+import os, json
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from rest_framework.views import APIView
@@ -27,7 +27,8 @@ class assistant(APIView):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        pergunta  = request.GET.get("query")
+        data = json.loads(request.body)
+        pergunta = data.get("query")
 
         loader = TextLoader('chat/data/data.txt')
         documents = loader.load()
@@ -47,7 +48,7 @@ class assistant(APIView):
         Seja direto e responda apenas apartir dos dados carregados, você não pode responder nada além do que há nos dados.
 
         Question: {question}
-        Your answer has to be an output less than 150 characters lenght.
+        Your answer has to be an output less than 300 characters lenght.
         Answer only in Brazilian Portuguese (PT-BR)."""
         PROMPT = PromptTemplate(
         template=prompt_template, input_variables=["context", "question"]
@@ -56,5 +57,5 @@ class assistant(APIView):
         qa = RetrievalQA.from_chain_type(llm = ChatOpenAI(model_name="gpt-3.5-turbo"), chain_type="stuff", retriever=docsearch.as_retriever(), chain_type_kwargs=chain_type_kwargs)
         result = qa.run(pergunta)
 
-        return Response({"response": result,})
+        return Response({"response": result})
         
