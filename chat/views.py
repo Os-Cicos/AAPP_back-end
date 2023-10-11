@@ -11,6 +11,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from rest_framework.reverse import reverse
 from rest_framework.permissions import IsAuthenticated
+from langchain.document_loaders import S3FileLoader
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
@@ -30,7 +31,7 @@ class assistant(APIView):
         data = json.loads(request.body)
         pergunta = data.get("query")
 
-        loader = TextLoader('chat/data/data.txt')
+        loader = S3FileLoader("projeto-tic-s3", "static/data.txt")
         documents = loader.load()
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         texts = text_splitter.split_documents(documents)
