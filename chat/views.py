@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from langchain.document_loaders import TextLoader
 from langchain.chains import RetrievalQA
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from rest_framework.reverse import reverse
@@ -31,7 +31,7 @@ class assistant(APIView):
 
         loader = S3FileLoader("projeto-tic-s3", "static/data.txt")
         documents = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         texts = text_splitter.split_documents(documents)
 
         embeddings = OpenAIEmbeddings()
