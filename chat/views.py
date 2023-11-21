@@ -24,8 +24,6 @@ class APIRootView(APIView):
         return Response(data)
 
 class assistant(APIView):
-    permission_classes = (IsAuthenticated, )
-
     def post(self, request):
         data = json.loads(request.body)
         pergunta = data.get("query")
