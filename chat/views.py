@@ -63,7 +63,7 @@ class assistant(APIView):
         engine.setProperty('rate', 200)  # velocidade 120 = lento
         for indice, vozes in enumerate(voices): 
             print(indice, vozes.name)
-        voz = 3 
+        voz = 2 # selecione de acordo com o seu sistema
         engine.setProperty('voice', voices[voz].id)
 
         audio_file_path = 'result.mp3'
