@@ -55,7 +55,7 @@ class assistant(APIView):
         # speech_file_path = Path('C:\Users\orea1\Desktop\apigpt\gpt').parent / "speech.mp3"
         response = client.audio.speech.create(
         model="tts-1",
-        voice="onyx",  # alloy / echo / fable / onyx / nova / shimmer
+        voice="echo",  # alloy / echo / fable / onyx / nova / shimmer
         input=result
         )
 
