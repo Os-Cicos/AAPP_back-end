@@ -1,6 +1,8 @@
-
 from pathlib import Path
 from datetime import timedelta
+import os
+import boto3
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -29,6 +31,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'chat',
+    'storages',
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -122,9 +125,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AWS_LOCATION = 'static'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'chat/data'),
+]
+
+AWS_ACCESS_KEY_ID = 'AKIAVMQH56HZYNXDXNEJ'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_STORAGE_BUCKET_NAME = 'projeto-tic-s3'
+AWS_S3_REGION_NAME = 'us-east-1'
+
+s3 = boto3.client('s3', region_name='us-east-1')
+
+AWS_S3_CUSTOM_DOMAIN = 'd1vdw4t1lqcmpc.cloudfront.net'
+
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+STATIC_URL = 'https://%s/%s/' % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)

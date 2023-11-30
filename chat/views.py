@@ -11,9 +11,10 @@ from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
 from langchain.schema import StrOutputParser
+from langchain.document_loaders import S3FileLoader
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
-loader = DirectoryLoader('chat/data/')
+loader = S3FileLoader("projeto-tic-s3", "static/data.txt")
 documents = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(documents)
