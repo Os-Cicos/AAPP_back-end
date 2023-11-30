@@ -44,7 +44,7 @@ class assistant(APIView):
             template=prompt_template, input_variables=["contexto", "questao"]
         )
         llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-        rag_chain = {"context": retriever, "question": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
+        rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
         result = rag_chain.invoke(question)
 
         # TEXTO PARA ÁUDIO
