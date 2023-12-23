@@ -91,7 +91,7 @@ class transcribe(APIView):
         
         def record():
             audio_record = data.get("audio_record")
-            audio = base64.b64decode(audio_record)
+            audio = base64.b64decode(audio_record.split(',')[1])
             file_name = 'request_audio.wav'
             with open(file_name, 'wb') as f:
                 f.write(audio)
