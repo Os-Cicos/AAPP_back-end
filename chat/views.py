@@ -1,5 +1,5 @@
 from . import constants
-import os, json, base64
+import os, json, base64, whisper, torch
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
 from rest_framework.views import APIView
@@ -9,41 +9,80 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
-from langchain.prompts import PromptTemplate
 from langchain.schema import StrOutputParser
-import whisper, torch
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import AIMessage, HumanMessage
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
-class Initializer:
-    def __init__(self):
-        self.loader = DirectoryLoader('chat/data/')
-        # self.loader = S3FileLoader("projeto-tic-s3", "static/IntroCCcomJava.pdf")
-        self.documents = self.loader.load()
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        self.splits = self.text_splitter.split_documents(self.documents)
-        self.embeddings = OpenAIEmbeddings()
-        self.vectorstore = Chroma.from_documents(documents=self.splits, embedding=self.embeddings)
-        self.retriever = self.vectorstore.as_retriever()
+ # Carregamento de dados e armazenamento de vetores
+   
+llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106")
+loader = DirectoryLoader('chat/data/')
+# loader = S3FileLoader("projeto-tic-s3", "static/IntroCCcomJava.pdf")
+documents = loader.load()
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+splits = text_splitter.split_documents(documents)
+embeddings = OpenAIEmbeddings()
+vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+retriever = vectorstore.as_retriever()
 
-        self.prompt_template = """Responda às perguntas com base apenas no contexto fornecido. Se não souber a resposta, diga que não possui a informação, sem elaborar.
+# Criação do histórido do chat
 
-        {contexto}
-        Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados. Não forneça respostas além do que está nos textos.
-        Você é um assistente virtual da empresa BRISA, chamado 'Ciçin', com pronomes masculinos.
-        Se a pergunta for vaga ou não clara solicite esclarecimento. Pedindo por mais detalhes específicos.
-        Após responder, sempre pergunte se o usuário tem mais alguma dúvida.
+contextualize_q_system_prompt = """Given a chat history and the latest user question \
+which might reference context in the chat history, formulate a standalone question \
+which can be understood without the chat history. Do NOT answer the question, \
+just reformulate it if needed and otherwise return it as is."""
 
-        Question: {questao}
-        Sua resposta deve ter menos de 800 caracteres.
-        Responda apenas em Português do Brasil (PT-BR)."""
-        self.PROMPT = PromptTemplate(
-                    template=self.prompt_template, input_variables=["contexto", "questao"]
-                )
-        self.llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106")
-        self.rag_chain = {"contexto": self.retriever, "questao": RunnablePassthrough()} | self.PROMPT | self.llm | StrOutputParser()
+contextualize_q_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", contextualize_q_system_prompt),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ]
+)
 
-initializer = Initializer()
+contextualize_q_chain = contextualize_q_prompt | llm | StrOutputParser()
+
+
+qa_system_prompt = """Responda às perguntas com base apenas no contexto fornecido. Se não souber a resposta, diga que não possui a informação, sem elaborar.
+
+{context}
+Responda apenas se houver informação da pergunta nos documentos carregados. Não forneça respostas além do que está nos textos.
+Responda exatamente como está nos textos carregados.
+Você é um assistente virtual da empresa BRISA, chamado 'Ciçin', com pronomes masculinos.
+Se a pergunta for vaga ou não clara solicite esclarecimento. Pedindo por mais detalhes específicos.
+Após responder, sempre pergunte se o usuário tem mais alguma dúvida.
+Sua resposta deve ter menos de 1000 caracteres.
+Responda apenas em Português do Brasil (PT-BR)."""
+
+qa_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", qa_system_prompt),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("human", "{question}"),
+    ]
+)
+
+def contextualized_question(input: dict):
+    if input.get("chat_history"):
+        return contextualize_q_chain
+    else:
+        return input["question"]
+
+# Cadeia final
+
+rag_chain = (
+    RunnablePassthrough.assign(
+        context=contextualized_question | retriever 
+    )
+    | qa_prompt
+    | llm
+    | StrOutputParser()
+)
+chat_history = []
+
+# Texto para audio (TTS)
 
 def text_to_audio(result):
     client = OpenAI()
@@ -63,7 +102,7 @@ def text_to_audio(result):
 
     return audio_data
 
-
+# View principal (Rota padrão)
 
 class assistant(APIView):
 
@@ -71,14 +110,17 @@ class assistant(APIView):
         data = json.loads(request.body)
         question = data.get("query")
         use_audio = data.get("use_audio") 
-        result = initializer.rag_chain.invoke(question)
+        result = rag_chain.invoke({"question": question, "chat_history": chat_history})
+        chat_history.extend([HumanMessage(content=question), AIMessage(content=result)])
 
         if use_audio:
             audio_data = text_to_audio(result)
             return Response({"response_text": result, "response_audio": audio_data})
         else:
             return Response({"response_text": result})
-        
+
+# View para transcrição do audio
+
 class transcribe(APIView):
     
     def post(self, request):
@@ -91,7 +133,7 @@ class transcribe(APIView):
         
         def record():
             audio_record = data.get("audio_record")
-            audio = base64.b64decode(audio_record.split(',')[1])
+            audio = base64.b64decode(audio_record)
             file_name = 'request_audio.wav'
             with open(file_name, 'wb') as f:
                 f.write(audio)
