@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from langchain.document_loaders import DirectoryLoader, S3FileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema import StrOutputParser
@@ -22,7 +22,7 @@ loader = S3FileLoader("projeto-tic-s3", "static/final.pdf")
 documents = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(documents)
-embeddings = OpenAIEmbeddings()
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
 retriever = vectorstore.as_retriever()
 
