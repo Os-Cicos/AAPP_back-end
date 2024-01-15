@@ -18,8 +18,7 @@ os.environ["OPENAI_API_KEY"] = constants.APIKEY
  # Carregamento de dados e armazenamento de vetores
    
 llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106")
-loader = DirectoryLoader('chat/data/')
-# loader = S3FileLoader("projeto-tic-s3", "static/IntroCCcomJava.pdf")
+loader = S3FileLoader("projeto-tic-s3", "static/final.pdf")
 documents = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(documents)
@@ -133,7 +132,7 @@ class transcribe(APIView):
         
         def record():
             audio_record = data.get("audio_record")
-            audio = base64.b64decode(audio_record)
+            audio = base64.b64decode(audio_record.split(',')[1])
             file_name = 'request_audio.wav'
             with open(file_name, 'wb') as f:
                 f.write(audio)
