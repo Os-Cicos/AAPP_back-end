@@ -22,7 +22,8 @@ loader = S3FileLoader("projeto-tic-s3", "static/final.pdf")
 documents = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(documents)
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
 vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
 retriever = vectorstore.as_retriever()
 
