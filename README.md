@@ -4,7 +4,7 @@
 
 Após o download  do código:
 
-Obs.: Usar a versão 3.10.10 do python!
+Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10.x ou inferior podem ser usadas!
 
 - Criação do ambiente virtual
 
@@ -24,7 +24,11 @@ Obs.: Usar a versão 3.10.10 do python!
 
 ``` loader = DirectoryLoader('diretório') ```
 
-- Caso queiram continuar usando o AWS, é necessário a inserção das keys que estão no diretório gpt/settings.py, conforme pedido no terminal.
+- Caso queiram continuar usando o AWS, é necessário digitar o comando no terminal:
+
+``` aws configure ```
+
+e colocar as keys que estão no diretório gpt/settings.py
 
 - Atualização da APIKEY, no diretório chat/constants.py , colocar a APIKEY recebida.
 
@@ -51,4 +55,8 @@ OBS.: Caso queira testar apenas o back-end, igual mostrado no vídeo, é necess�
 por
 
 ``` audio = base64.b64decode(audio_record) ```
+
+Obs.: Caso ocorra erro na execução do whisper utilizando o Endpoint Transcribe, instale o FFMPEG no computador e adicione ele na variável de ambiente PATH, após isso, reinicie o sistema."
+
+https://ffmpeg.org/download.html 
 
