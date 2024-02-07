@@ -3,12 +3,7 @@ from . import views
 from rest_framework_simplejwt import views as jwt_views
 
 urlpatterns = [
-     path('assistant/', views.assistant.as_view(),name='assistant'),
-     path('transcribe/', views.transcribe.as_view(),name='transcribe'),
-     path('token/', 
-          jwt_views.TokenObtainPairView.as_view(), 
-          name ='token_obtain_pair'),
-     path('token/refresh/', 
-          jwt_views.TokenRefreshView.as_view(), 
-          name ='token_refresh'),
+     path('assistant/', views.Assistant.as_view(),name='assistant'),
+     path('loader/', views.Loader.as_view(),name='Loader'),
+     path('transcribe/', views.Transcribe.as_view(),name='transcribe'),
 ]
