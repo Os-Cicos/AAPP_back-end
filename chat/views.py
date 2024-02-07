@@ -2,49 +2,67 @@ from . import constants
 import os, json, base64
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from langchain.document_loaders import DirectoryLoader, S3FileLoader
+from langchain.document_loaders import S3FileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
 from langchain.schema import StrOutputParser
+from langchain.embeddings import HuggingFaceEmbeddings
 import whisper, torch
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
-class Initializer:
-    def __init__(self):
-        # self.loader = DirectoryLoader('chat/data/')
-        self.loader = S3FileLoader("projeto-tic-s3", "static/final.pdf")
-        self.documents = self.loader.load()
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        self.splits = self.text_splitter.split_documents(self.documents)
-        # self.embeddings = OpenAIEmbeddings()
-        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        self.vectorstore = Chroma.from_documents(documents=self.splits, embedding=self.embeddings)
-        self.retriever = self.vectorstore.as_retriever()
+class Loader(APIView):
 
-        self.prompt_template = """Responda às perguntas com base apenas no contexto fornecido. Se não souber a resposta, diga que não possui a informação, sem elaborar.
+    rag_chain = None
 
-        {contexto}
-        Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados. Não forneça respostas além do que está nos textos.
-        Você é um assistente virtual da empresa BRISA.
-        Se a pergunta for vaga ou não clara solicite esclarecimento. Pedindo por mais detalhes específicos.
-        Após responder, sempre pergunte se o usuário tem mais alguma dúvida.
+    def post(self, request):
+        data = json.loads(request.body)
+        index = data.get("index") 
 
-        Question: {questao}
-        Sua resposta deve ter menos de 800 caracteres.
-        Responda apenas em Português do Brasil (PT-BR)."""
-        self.PROMPT = PromptTemplate(
-                    template=self.prompt_template, input_variables=["contexto", "questao"]
-                )
-        self.llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature= 0.0)
-        self.rag_chain = {"contexto": self.retriever, "questao": RunnablePassthrough()} | self.PROMPT | self.llm | StrOutputParser()
+        directories = [
+            ("projeto-tic-s3", "static/Python.pdf"),
+            ("projeto-tic-s3", "static/Lógica.pdf"),
+        ]
 
-initializer = Initializer()
+        if index < 0 or index >= len(directories):
+            return Response({"error": "Índice inválido"}, status=status.HTTP_404_NOT_FOUND)
+
+        try: 
+            loader = S3FileLoader(*directories[index])
+
+            documents = loader.load()
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            splits = text_splitter.split_documents(documents)
+            embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+            embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+            vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+            retriever = vectorstore.as_retriever()
+            prompt_template = """
+            
+            {contexto}
+            Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
+            Você é um assistente virtual da empresa BRISA.
+            Sua resposta deve ter menos de 800 caracteres.
+            Responda apenas em Português do Brasil (PT-BR).
+            Question: {questao}"""
+
+            PROMPT = PromptTemplate(
+                        template=prompt_template, input_variables=["contexto", "questao"]
+                    )
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature= 0.0)
+            Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
+
+            return Response({"message": "Dados carregados com sucesso!"})
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+     
 
 def text_to_audio(result):
     client = OpenAI()
@@ -66,13 +84,16 @@ def text_to_audio(result):
 
 
 
-class assistant(APIView):
+class Assistant(APIView):
 
     def post(self, request):
         data = json.loads(request.body)
         question = data.get("query")
         use_audio = data.get("use_audio") 
-        result = initializer.rag_chain.invoke(question)
+        
+        if Loader.rag_chain is None:
+            return Response({"error": "Nenhum dado foi carregado ainda."}, status=400)
+        result = Loader.rag_chain.invoke(question)
 
         if use_audio:
             audio_data = text_to_audio(result)
@@ -80,7 +101,7 @@ class assistant(APIView):
         else:
             return Response({"response_text": result})
         
-class transcribe(APIView):
+class Transcribe(APIView):
     
     def post(self, request):
         data = json.loads(request.body)
