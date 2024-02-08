@@ -1,10 +1,13 @@
 from . import constants
-import os, json, base64
+import os, json, base64, whisper, torch
 from openai import OpenAI
 from langchain.chat_models import ChatOpenAI
+from django.contrib.auth.models import User
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from langchain.document_loaders import S3FileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
@@ -12,10 +15,19 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.prompts import PromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.embeddings import HuggingFaceEmbeddings
-import whisper, torch
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
+class CreateUser(APIView):
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        if not username or not password:
+            return Response({'error': 'Username and password required'}, status=400)
+        User.objects.create_user(username, password=password)
+        return Response({'message': 'User created successfully'}, status=201)
+    
 class Loader(APIView):
 
     rag_chain = None
@@ -46,7 +58,7 @@ class Loader(APIView):
             
             {contexto}
             Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
-            Você é um assistente virtual da empresa BRISA.
+            Você é um assistente virtual da empresa BRISA, mantenha uma conversa humanizada, fazendo os cumprimentos necessários.
             Sua resposta deve ter menos de 800 caracteres.
             Responda apenas em Português do Brasil (PT-BR).
             Question: {questao}"""
@@ -86,7 +98,16 @@ def text_to_audio(result):
 
 class Assistant(APIView):
 
+    permission_classes = (IsAuthenticated)
+
     def post(self, request):
+        
+        token = request.META.get('HTTP_AUTHORIZATION', "").split()[1]
+        counter = cache.get(token, 0)
+        if counter >= 3:
+            return Response({"error": "Limite de requisições atingido"}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        cache.set(token, counter + 1, timeout=10800)
+
         data = json.loads(request.body)
         question = data.get("query")
         use_audio = data.get("use_audio") 
