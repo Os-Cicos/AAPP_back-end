@@ -44,9 +44,15 @@ e colocar as keys que estão no diretório gpt/settings.py
 
 - Recomendamos ver no vídeo para ficar mais intuitivo.
 
-- No EndPoint "Assistant" , 2 parâmetros são passados, "query" que é a pergunta ao professor, e "use_audio" que informa se é o envio do text to speech.
+- No Endpoint "/api/create_user/", 2 parâmetros devem ser passados para criar um usuário no banco de dados do projeto e ser possível gerar o Token JWT, "username" e "password". Também pode ser criado um superuser no Django de sua preferência.
 
-- No EndPoint "Transcribe" temos o Speech to text, caso queira rodar o back-end juntamente do front-end, não é necessário alterar nada no código.
+- No Endpoint "/api/token/, o user criado deve ser passado como parâmetro para o token JWT ser gerado, tanto o de acesso quanto o de refresh.
+
+- No Endpoint "/api/loader/, deve ser passado o parâmetro "index", com um inteiro indicando a string da tupla que deve ser carregada, onde a mesmo contém o diretório AWS.
+
+- No EndPoint "/api/assistant/" , 2 parâmetros são passados, "query" que é a pergunta ao professor, e "use_audio" que informa se é necessário o uso do text to speech. Também é necessário inserir o Token de acesso JWT no Header da requisição para ser validado. Após 3 requisições com o mesmo token, o uso é bloqueado. (Pode ser alterado diretamente no código views.py, dentro da Classe "Assistant".)
+
+- No EndPoint "/api/transcribe/" temos o Speech to text, caso queira rodar o back-end juntamente do front-end, não é necessário alterar nada no código.
 
 OBS.: Caso queira testar apenas o back-end, igual mostrado no vídeo, é necessário alterar a seguinte linha no código:
 
