@@ -3,9 +3,6 @@ from . import views
 from rest_framework_simplejwt import views as jwt_views
 
 urlpatterns = [
-     path('create_user/', 
-          views.CreateUser.as_view(), 
-          name='create_auth'),
      path('assistant/', 
           views.Assistant.as_view(),
           name='assistant'),
