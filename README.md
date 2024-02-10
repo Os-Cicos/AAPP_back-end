@@ -21,6 +21,7 @@ Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10
 - Migração dos modelos
 
 ``` python manage.py makemigrations ```
+
 ``` python manage.py migrate ```
 
 ## 2 - Modificações no código
