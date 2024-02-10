@@ -106,8 +106,7 @@ class Assistant(APIView):
                 user.start_time = timezone.now()
             if user.count >= max_count and now - user.start_time < reset_time:
                 return Response({"error": "Limite de requisições atingido"}, status.HTTP_429_TOO_MANY_REQUESTS)
-            
-            if now - user.start_time > reset_time:
+            elif now - user.start_time > reset_time:
                 user.count = 0
             
             user.count += 1
