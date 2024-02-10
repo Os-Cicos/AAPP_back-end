@@ -119,7 +119,7 @@ class Assistant(APIView):
             use_audio = data.get("use_audio") 
             
             if Loader.rag_chain is None:
-                return Response({"error": "Nenhum dado foi carregado ainda."}, status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Nenhum dado foi carregado ainda.", "Status": f"Requisição {user.count} de {max_count}"}, status.HTTP_400_BAD_REQUEST)
             result = Loader.rag_chain.invoke(question)
 
             if use_audio:
