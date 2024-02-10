@@ -18,6 +18,11 @@ Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10
 
 ``` pip install -r requirements.txt ```
 
+- Migração dos modelos
+
+``` python manage.py makemigrations ```
+``` python manage.py migrate ```
+
 ## 2 - Modificações no código
 
 - Na views.py do diretório chat, caso queiram usar arquivos locais, usar:
@@ -31,6 +36,10 @@ Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10
 e colocar as keys que estão no diretório gpt/settings.py
 
 - Atualização da APIKEY, no diretório chat/constants.py , colocar a APIKEY recebida.
+
+- O tempo de reset de requisições por id pode ser feito diretamente no arquivo views.py, dentro da classe Assistant, na variável ```reset_time```.
+
+- A quantidade máxima de requisições por intervalo de tempo (definido anteriormente) pode ser alterada no mesmo local, na variável ```max_count```.
 
 ## 3 - Execução do app
 
