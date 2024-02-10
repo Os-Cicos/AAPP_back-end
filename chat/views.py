@@ -119,14 +119,14 @@ class Assistant(APIView):
             use_audio = data.get("use_audio") 
             
             if Loader.rag_chain is None:
-                return Response({"error": "Nenhum dado foi carregado ainda.", "Status": f"Requisição {user.count} de {max_count}"}, status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Nenhum dado foi carregado ainda.", "status": f"Requisição {user.count} de {max_count}"}, status.HTTP_400_BAD_REQUEST)
             result = Loader.rag_chain.invoke(question)
 
             if use_audio:
                 audio_data = text_to_audio(result)
-                return Response({"response_text": result, "response_audio": audio_data})
+                return Response({"response_text": result, "status": f"Requisição {user.count} de {max_count}", "response_audio": audio_data})
             else:
-                return Response({"response_text": result})
+                return Response({"response_text": result, "status": f"Requisição {user.count} de {max_count}"})
         else:
             return Response({"error": "idUser é necessário"}, status.HTTP_400_BAD_REQUEST)
         
