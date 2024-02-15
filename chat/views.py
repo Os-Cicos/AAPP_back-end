@@ -1,4 +1,4 @@
-import time
+import glob, gc
 from . import constants
 import os, json, base64, whisper, torch, datetime
 from openai import OpenAI
@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from langchain.document_loaders import S3FileLoader
+from langchain.document_loaders import S3FileLoader, DirectoryLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
@@ -20,19 +20,34 @@ from langchain.embeddings import HuggingFaceEmbeddings
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
+    
+# Código para diretório na nuvem
+
+# directories = [
+#    ("projeto-tic-s3", "static/Python.pdf"),
+#    ("projeto-tic-s3", "static/Lógica.pdf"),
+# ]
+
+# def get(self, request):
+#    files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
+#    return Response(files, status=status.HTTP_200_OK)
+
+
+
 class Loader(APIView):
 
     rag_chain = None
 
-    directories = [
-        ("projeto-tic-s3", "static/Python.pdf"),
-        ("projeto-tic-s3", "static/Lógica.pdf"),
-    ]
+    folder_path = "chat/data/"
+    file_path = glob.glob(os.path.join(folder_path, "*"))
+    directories = [(i, path) for i, path in enumerate(file_path)]
 
+    
     def get(self, request):
-        files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
+        files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, path in self.directories]
         return Response(files, status=status.HTTP_200_OK)
     
+
     def post(self, request):
         data = json.loads(request.body)
         index = data.get("index") 
@@ -40,36 +55,37 @@ class Loader(APIView):
         if index < 0 or index >= len(self.directories):
             return Response({"error": "Índice inválido"}, status.HTTP_404_NOT_FOUND)
 
-        try: 
-            loader = S3FileLoader(*self.directories[index])
-
-            documents = loader.load()
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            splits = text_splitter.split_documents(documents)
-            embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
-            embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-            vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
-            retriever = vectorstore.as_retriever()
-            prompt_template = """
-            
-            {contexto}
-            Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
-            Você é um assistente virtual da empresa BRISA, mantenha uma conversa humanizada, fazendo os cumprimentos necessários.
-            Sua resposta deve ter menos de 800 caracteres.
-            Responda apenas em Português do Brasil (PT-BR).
-            Question: {questao}"""
-
-            PROMPT = PromptTemplate(
-                        template=prompt_template, input_variables=["contexto", "questao"]
-                    )
-            llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature= 0.5)
-            Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
-
-            return Response({"message": "Dados carregados com sucesso!"})
+       
+        _, file_path = self.directories[index]
+        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        directory_path = os.path.join("chat/data", file_name + ".pdf")
+        loader = PyPDFLoader(directory_path)
         
-        except Exception as e:
-            return Response({"error": str(e)}, status.HTTP_404_NOT_FOUND)
+        documents = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        splits = text_splitter.split_documents(documents)
+        embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+        embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+        retriever = vectorstore.as_retriever()
+        prompt_template = """
+        
+        {contexto}
+        Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
+        Não tente elaborar a resposta caso não encontre dos dados carregados!
+        Você é um assistente virtual da empresa BRISA, mantenha uma conversa humanizada, fazendo os cumprimentos necessários.
+        Sua resposta deve ter menos de 800 caracteres.
+        Responda apenas em Português do Brasil (PT-BR).
+        Question: {questao}"""
 
+        PROMPT = PromptTemplate(
+                    template=prompt_template, input_variables=["contexto", "questao"]
+                )
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature= 0.5)
+        Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
+
+        return Response({"message": "Dados carregados com sucesso!"})
+ 
 def text_to_audio(result):
     client = OpenAI()
 
