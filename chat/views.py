@@ -20,24 +20,21 @@ from langchain.embeddings import HuggingFaceEmbeddings
 
 os.environ["OPENAI_API_KEY"] = constants.APIKEY
 
-    
-# Código para diretório na nuvem
-
-# directories = [
-#    ("projeto-tic-s3", "static/Python.pdf"),
-#    ("projeto-tic-s3", "static/Lógica.pdf"),
-# ]
-
-# def get(self, request):
-#    files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
-#    return Response(files, status=status.HTTP_200_OK)
-
-
-
 class Loader(APIView):
 
     rag_chain = None
 
+    # Código para diretório na nuvem
+
+    # directories = [
+    #    ("projeto-tic-s3", "static/Python.pdf"),
+    #    ("projeto-tic-s3", "static/Lógica.pdf"),
+    # ]
+
+    # def get(self, request):
+    #    files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
+    #    return Response(files, status=status.HTTP_200_OK)
+       
     folder_path = "chat/data/"
     file_path = glob.glob(os.path.join(folder_path, "*"))
     directories = [(i, path) for i, path in enumerate(file_path)]
@@ -55,7 +52,6 @@ class Loader(APIView):
         if index < 0 or index >= len(self.directories):
             return Response({"error": "Índice inválido"}, status.HTTP_404_NOT_FOUND)
 
-       
         _, file_path = self.directories[index]
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         directory_path = os.path.join("chat/data", file_name + ".pdf")
