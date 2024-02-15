@@ -24,20 +24,24 @@ class Loader(APIView):
 
     rag_chain = None
 
+    directories = [
+        ("projeto-tic-s3", "static/Python.pdf"),
+        ("projeto-tic-s3", "static/Lógica.pdf"),
+    ]
+
+    def get(self, request):
+        files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
+        return Response(files, status=status.HTTP_200_OK)
+    
     def post(self, request):
         data = json.loads(request.body)
         index = data.get("index") 
 
-        directories = [
-            ("projeto-tic-s3", "static/Python.pdf"),
-            ("projeto-tic-s3", "static/Lógica.pdf"),
-        ]
-
-        if index < 0 or index >= len(directories):
+        if index < 0 or index >= len(self.directories):
             return Response({"error": "Índice inválido"}, status.HTTP_404_NOT_FOUND)
 
         try: 
-            loader = S3FileLoader(*directories[index])
+            loader = S3FileLoader(*self.directories[index])
 
             documents = loader.load()
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -65,8 +69,6 @@ class Loader(APIView):
         
         except Exception as e:
             return Response({"error": str(e)}, status.HTTP_404_NOT_FOUND)
-
-     
 
 def text_to_audio(result):
     client = OpenAI()
