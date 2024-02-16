@@ -58,7 +58,7 @@ e colocar as keys que estão no diretório gpt/settings.py
 
 - No Endpoint ```/api/token/refresh/``` pode ser gerado outro token de acesso a partir do token refresh criado anteriormente.
 
-- No Endpoint ```/api/loader/``` deve ser passado o parâmetro "index", com um inteiro indicando a string da tupla que deve ser carregada, onde a mesmo contém o diretório AWS.
+- No Endpoint ```/api/loader/``` com o método POST deve ser passado o parâmetro "index", com um inteiro indicando a string da tupla que deve ser carregada, onde a mesmo contém o diretório AWS. Com o método GET é recebido um index para cada arquivo no armazenamento.
 
 - No EndPoint ```/api/assistant/?idUser=ID_do_usuario_brisa``` 3 parâmetros são passados, "query" que é a pergunta ao professor, e "use_audio" que informa se é necessário o uso do text to speech. Enquanto esses dois parâmetros vão no corpo do JSON, deve ser inserido o número de usuário no URL para ser criado no banco de dados. Caso seja ativada a verificação JWT, também será necessário inserir o Token de acesso JWT no Header da requisição para ser validado.
 
