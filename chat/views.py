@@ -68,20 +68,19 @@ class Loader(APIView):
         Loader.ids = [str(i) for i in range(1, len(splits) + 1)]
         Loader.vectorstore = Chroma.from_documents(splits, embedding=embeddings, ids=Loader.ids)
         retriever = Loader.vectorstore.as_retriever()
-        prompt_template = """
-        
+        prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+        You are a virtual assistant from the company BRISA, maintain a humanized conversation, making the necessary greetings.
+        Always provide as much information and characters as possible.
+        Please answer only in Brazilian Portuguese (PT-BR).
         {contexto}
-        Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
-        Não tente elaborar a resposta caso não encontre dos dados carregados!
-        Você é um assistente virtual da empresa BRISA, mantenha uma conversa humanizada, fazendo os cumprimentos necessários.
-        Sempre forneça a maior quantidade de informação e caracteres possível. Busque por qualquer relação dentro dos documentos.
-        Responda apenas em Português do Brasil (PT-BR).
-        Question: {questao}"""
+        Question: {questao}
+        
+        Helpful Answer:"""
 
         PROMPT = PromptTemplate(
                     template=prompt_template, input_variables=["contexto", "questao"]
                 )
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature= 0.5, max_tokens=3000)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature= 0.3, max_tokens=3000)
         Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
 
         return Response({"message": "Dados carregados com sucesso!"})
