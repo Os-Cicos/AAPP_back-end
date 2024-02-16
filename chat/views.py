@@ -53,37 +53,41 @@ class Loader(APIView):
         if index < 0 or index >= len(self.directories):
             return Response({"error": "Índice inválido"}, status.HTTP_404_NOT_FOUND)
         
-        _, file_path = self.directories[index]
-        file_name = os.path.splitext(os.path.basename(file_path))[0]
-        directory_path = os.path.join("chat/data", file_name + ".pdf")
-        loader = PyPDFLoader(directory_path)   
-        documents = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        splits = text_splitter.split_documents(documents)
-        embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
-        embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-        if Loader.ids is not None:
-            for id in Loader.ids:
-                Loader.vectorstore.delete(ids=[id])
-        Loader.ids = [str(i) for i in range(1, len(splits) + 1)]
-        Loader.vectorstore = Chroma.from_documents(splits, embedding=embeddings, ids=Loader.ids)
-        retriever = Loader.vectorstore.as_retriever()
-        prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-        You are a virtual assistant from the company BRISA, maintain a humanized conversation, making the necessary greetings.
-        Always provide as much information and characters as possible.
-        Please answer only in Brazilian Portuguese (PT-BR).
-        {contexto}
-        Question: {questao}
+        try:
+            _, file_path = self.directories[index]
+            file_name = os.path.splitext(os.path.basename(file_path))[0]
+            directory_path = os.path.join("chat/data", file_name + ".pdf")
+            loader = PyPDFLoader(directory_path)   
+            documents = loader.load()
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            splits = text_splitter.split_documents(documents)
+            embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+            embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
+            if Loader.ids is not None:
+                for id in Loader.ids:
+                    Loader.vectorstore.delete(ids=[id])
+            Loader.ids = [str(i) for i in range(1, len(splits) + 1)]
+            Loader.vectorstore = Chroma.from_documents(splits, embedding=embeddings, ids=Loader.ids)
+            retriever = Loader.vectorstore.as_retriever()
+            prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+            You are a virtual assistant from the company BRISA, maintain a humanized conversation, making the necessary greetings.
+            Always provide as much information and characters as possible.
+            Please answer only in Brazilian Portuguese (PT-BR).
+            {contexto}
+            Question: {questao}
+            
+            Helpful Answer:"""
+
+            PROMPT = PromptTemplate(
+                        template=prompt_template, input_variables=["contexto", "questao"]
+                    )
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature= 0.3, max_tokens=3000)
+            Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
+
+            return Response({"message": "Dados carregados com sucesso!"})
         
-        Helpful Answer:"""
-
-        PROMPT = PromptTemplate(
-                    template=prompt_template, input_variables=["contexto", "questao"]
-                )
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature= 0.3, max_tokens=3000)
-        Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
-
-        return Response({"message": "Dados carregados com sucesso!"})
+        except Exception as e:
+            return Response({"error": str(e)}, status.HTTP_404_NOT_FOUND)
     
 def text_to_audio(result):
     client = OpenAI()
