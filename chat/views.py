@@ -1,4 +1,4 @@
-import glob, gc
+import glob
 from . import constants
 import os, json, base64, whisper, torch, datetime
 from openai import OpenAI
@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from langchain.document_loaders import S3FileLoader, DirectoryLoader, PyPDFLoader
+from langchain.document_loaders import S3FileLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.schema.runnable import RunnablePassthrough
@@ -23,6 +23,12 @@ os.environ["OPENAI_API_KEY"] = constants.APIKEY
 class Loader(APIView):
 
     rag_chain = None
+    ids = None
+    vectorstore = None
+
+    folder_path = "chat/data/"
+    file_path = glob.glob(os.path.join(folder_path, "*"))
+    directories = [(i, path) for i, path in enumerate(file_path)]
 
     # Código para diretório na nuvem
 
@@ -34,11 +40,6 @@ class Loader(APIView):
     # def get(self, request):
     #    files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, (_, path) in enumerate(self.directories)]
     #    return Response(files, status=status.HTTP_200_OK)
-       
-    folder_path = "chat/data/"
-    file_path = glob.glob(os.path.join(folder_path, "*"))
-    directories = [(i, path) for i, path in enumerate(file_path)]
-
     
     def get(self, request):
         files = [{"index": i, "name": os.path.splitext(os.path.basename(path))[0]} for i, path in self.directories]
@@ -51,37 +52,40 @@ class Loader(APIView):
 
         if index < 0 or index >= len(self.directories):
             return Response({"error": "Índice inválido"}, status.HTTP_404_NOT_FOUND)
-
+        
         _, file_path = self.directories[index]
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         directory_path = os.path.join("chat/data", file_name + ".pdf")
-        loader = PyPDFLoader(directory_path)
-        
+        loader = PyPDFLoader(directory_path)   
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         splits = text_splitter.split_documents(documents)
         embeddings_model_name = "sentence-transformers/all-MiniLM-L6-v2"
         embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-        vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
-        retriever = vectorstore.as_retriever()
+        if Loader.ids is not None:
+            for id in Loader.ids:
+                Loader.vectorstore.delete(ids=[id])
+        Loader.ids = [str(i) for i in range(1, len(splits) + 1)]
+        Loader.vectorstore = Chroma.from_documents(splits, embedding=embeddings, ids=Loader.ids)
+        retriever = Loader.vectorstore.as_retriever()
         prompt_template = """
         
         {contexto}
         Responda apenas se houver informação da pergunta nos documentos carregados. Caso não encontre, diga que a informação não está na base de dados.
         Não tente elaborar a resposta caso não encontre dos dados carregados!
         Você é um assistente virtual da empresa BRISA, mantenha uma conversa humanizada, fazendo os cumprimentos necessários.
-        Sua resposta deve ter menos de 800 caracteres.
+        Sempre forneça a maior quantidade de informação e caracteres possível. Busque por qualquer relação dentro dos documentos.
         Responda apenas em Português do Brasil (PT-BR).
         Question: {questao}"""
 
         PROMPT = PromptTemplate(
                     template=prompt_template, input_variables=["contexto", "questao"]
                 )
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-1106", temperature= 0.5)
+        llm = ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature= 0.5, max_tokens=3000)
         Loader.rag_chain = {"contexto": retriever, "questao": RunnablePassthrough()} | PROMPT | llm | StrOutputParser()
 
         return Response({"message": "Dados carregados com sucesso!"})
- 
+    
 def text_to_audio(result):
     client = OpenAI()
 
