@@ -18,6 +18,11 @@ Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10
 
 ``` pip install -r requirements.txt ```
 
+Também é necessário reinstalar a biblioteca chromadb para a sua última versão, junto com as suas dependências.
+``` pip uninstall chromadb ```
+
+``` pip install chromadb ```
+
 - Migração dos modelos
 
 ``` python manage.py makemigrations ```
