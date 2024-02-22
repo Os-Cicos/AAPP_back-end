@@ -40,9 +40,9 @@ Obs.: Usar a versão 3.10.10 do python de preferência, mas outras versões 3.10
 
 ``` aws configure ```
 
-e colocar as keys que estão no diretório gpt/settings.py
+e colocar as keys geradas no serviço AWS.
 
-- Atualização da APIKEY, no diretório chat/constants.py , colocar a APIKEY recebida.
+- Atualização da APIKEY do chatgpt, no diretório chat/constants.py , gerar uma key no site do chatgpt e colocar no diretório.
 
 - O tempo de reset de requisições por id pode ser feito diretamente no arquivo views.py, dentro da classe Assistant, na variável ```reset_time```.
 
